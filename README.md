@@ -425,5 +425,5 @@ MIT License
 ---
 
 ## 📧 お問い合わせ
-
+ 
 質問・バグ報告は [Issues](https://github.com/your-username/voice-memo-ai/issues) へ
