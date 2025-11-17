@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 const API_KEY = process.env.MICROCMS_API_KEY!;
 const SERVICE_ID = process.env.MICROCMS_SERVICE_ID!;
@@ -12,25 +12,18 @@ export async function GET(
     const url = `https://${SERVICE_ID}.microcms.io/api/v1/memos/${params.id}`;
 
     const response = await fetch(url, {
-      headers: {
-        'X-MICROCMS-API-KEY': API_KEY,
-      },
-      cache: 'no-store',
+      headers: { "X-MICROCMS-API-KEY": API_KEY },
+      cache: "no-store",
     });
 
-    if (!response.ok) {
-      throw new Error('メモの取得に失敗しました');
-    }
+    if (!response.ok) throw new Error("メモの取得に失敗しました");
 
     const data = await response.json();
     return NextResponse.json(data);
-
-  } catch (error: any) {
-    console.error('メモ取得エラー:', error);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error("メモ取得エラー:", error);
+    const message = error instanceof Error ? error.message : "不明なエラー";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -44,27 +37,22 @@ export async function PATCH(
     const url = `https://${SERVICE_ID}.microcms.io/api/v1/memos/${params.id}`;
 
     const response = await fetch(url, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'X-MICROCMS-API-KEY': API_KEY,
-        'Content-Type': 'application/json',
+        "X-MICROCMS-API-KEY": API_KEY,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      throw new Error('メモの更新に失敗しました');
-    }
+    if (!response.ok) throw new Error("メモの更新に失敗しました");
 
     const data = await response.json();
     return NextResponse.json(data);
-
-  } catch (error: any) {
-    console.error('メモ更新エラー:', error);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error("メモ更新エラー:", error);
+    const message = error instanceof Error ? error.message : "不明なエラー";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -77,23 +65,16 @@ export async function DELETE(
     const url = `https://${SERVICE_ID}.microcms.io/api/v1/memos/${params.id}`;
 
     const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'X-MICROCMS-API-KEY': API_KEY,
-      },
+      method: "DELETE",
+      headers: { "X-MICROCMS-API-KEY": API_KEY },
     });
 
-    if (!response.ok) {
-      throw new Error('メモの削除に失敗しました');
-    }
+    if (!response.ok) throw new Error("メモの削除に失敗しました");
 
     return NextResponse.json({ success: true });
-
-  } catch (error: any) {
-    console.error('メモ削除エラー:', error);
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error("メモ削除エラー:", error);
+    const message = error instanceof Error ? error.message : "不明なエラー";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

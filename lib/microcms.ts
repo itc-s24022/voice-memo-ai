@@ -10,6 +10,7 @@ export type Memo = {
   tags: string[];
   user_id: string;
   processed_at: string;
+  duration_seconds?: number;
 };
 
 export async function getMemosByUser(uid: string): Promise<Memo[]> {

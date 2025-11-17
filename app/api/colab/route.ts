@@ -4,23 +4,22 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const colabUrl = process.env.COLAB_API_URL;
-    
-    if (!colabUrl || typeof colabUrl !== 'string') {
+
+    if (!colabUrl || typeof colabUrl !== "string") {
       return NextResponse.json(
-        { success: false, error: 'Colab API URLが設定されていません' },
+        { success: false, error: "Colab API URLが設定されていません" },
         { status: 500 }
       );
     }
 
-    const contentType = request.headers.get('content-type');
+    const contentType = request.headers.get("content-type");
 
     // FormData（音声ファイル）の場合
-    if (contentType?.includes('multipart/form-data')) {
+    if (contentType?.includes("multipart/form-data")) {
       const formData = await request.formData();
-      
-      // Colabに転送
+
       const response = await fetch(`${colabUrl}/process`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
@@ -30,20 +29,20 @@ export async function POST(request: NextRequest) {
 
     // JSON（テキスト）の場合
     const body = await request.json();
-    
+
     if (!body.user_id) {
       return NextResponse.json(
-        { success: false, error: 'ユーザー認証が必要です' },
+        { success: false, error: "ユーザー認証が必要です" },
         { status: 401 }
       );
     }
 
-    console.log('Colab処理開始 - User:', body.user_id);
+    console.log("Colab処理開始 - User:", body.user_id);
 
     const response = await fetch(`${colabUrl}/process`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
@@ -53,14 +52,18 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('Colab処理成功');
-    
-    return NextResponse.json(data);
+    console.log("Colab処理成功");
 
-  } catch (error: any) {
-    console.error('Colab API エラー:', error);
+    return NextResponse.json(data);
+  } catch (error: unknown) {
+    console.error("Colab API エラー:", error);
+
+    // error が Error の場合だけ message を取得
+    const message =
+      error instanceof Error ? error.message : "不明なエラーが発生しました";
+
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: message },
       { status: 500 }
     );
   }

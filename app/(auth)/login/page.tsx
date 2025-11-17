@@ -1,8 +1,8 @@
-// app/(auth)/login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { FirebaseError } from "firebase/app";  // ← ここからインポート
 import { auth, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
@@ -21,8 +21,9 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
       setMessage("✅ ログイン成功！");
       router.push("/dashboard");
-    } catch (err: any) {
-      setError("❌ ログイン失敗: " + err.message);
+    } catch (err: unknown) {
+      const error = err as FirebaseError;
+      setError("❌ ログイン失敗: " + (error.message ?? "不明なエラー"));
     }
   };
 
@@ -33,8 +34,9 @@ export default function Login() {
       await signInWithPopup(auth, googleProvider);
       setMessage("✅ Googleログイン成功！");
       router.push("/dashboard");
-    } catch (err: any) {
-      setError("❌ Googleログイン失敗: " + err.message);
+    } catch (err: unknown) {
+      const error = err as FirebaseError;
+      setError("❌ Googleログイン失敗: " + (error.message ?? "不明なエラー"));
     }
   };
 

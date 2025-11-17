@@ -12,6 +12,7 @@ type Memo = {
   tags: string[];
   processed_at: string;
   transcript: string;
+  audio_url?: string;
 };
 
 export default function Dashboard() {
@@ -30,7 +31,6 @@ export default function Dashboard() {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Firebase Googleログイン判定
   const isGoogleLogin = user?.providerData?.[0]?.providerId === "google.com";
 
   // メモ取得
@@ -38,11 +38,11 @@ export default function Dashboard() {
     if (!user) return;
     try {
       const res = await fetch(`/api/memos?user_id=${user.uid}`);
-      const data = await res.json();
+      const data: { contents: Memo[] } = await res.json();
       setMemos(data.contents || []);
-      setLoading(false);
-    } catch (error) {
-      console.error("メモ取得エラー:", error);
+    } catch (err: unknown) {
+      if (err instanceof Error) console.error("メモ取得エラー:", err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -56,12 +56,8 @@ export default function Dashboard() {
     fetchMemos();
   }, [user, authLoading, router]);
 
-  // Google Drive認証
-  const connectGoogleDrive = () => {
-    signIn("google");
-  };
+  const connectGoogleDrive = () => signIn("google");
 
-  // 録音開始
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -69,7 +65,7 @@ export default function Dashboard() {
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => {
+      mediaRecorder.ondataavailable = (e: BlobEvent) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
@@ -81,8 +77,8 @@ export default function Dashboard() {
 
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (error) {
-      console.error("録音エラー:", error);
+    } catch (err: unknown) {
+      if (err instanceof Error) console.error("録音エラー:", err.message);
       alert("マイクアクセスが拒否されました");
     }
   };
@@ -99,7 +95,6 @@ export default function Dashboard() {
     if (file) setAudioBlob(file);
   };
 
-  // 音声処理
   const processAudio = async () => {
     if (!audioBlob || !user) return;
     setIsProcessing(true);
@@ -107,7 +102,6 @@ export default function Dashboard() {
     try {
       let driveUrl = "";
 
-      // Google Driveバックアップ（Firebase Googleログインはスキップ）
       if (!isGoogleLogin && enableGdriveBackup && session?.accessToken) {
         const driveFormData = new FormData();
         driveFormData.append("file", audioBlob);
@@ -117,24 +111,19 @@ export default function Dashboard() {
           method: "POST",
           body: driveFormData,
         });
-
         if (driveRes.ok) {
-          const driveData = await driveRes.json();
+          const driveData: { url: string } = await driveRes.json();
           driveUrl = driveData.url;
         }
       }
 
-      // Colab処理
       const formData = new FormData();
       formData.append("audio", audioBlob);
       formData.append("user_id", user.uid);
 
-      const res = await fetch("/api/colab", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
+      const res = await fetch("/api/colab", { method: "POST", body: formData });
+      const data: { success: boolean; content_id?: string; error?: string } =
+        await res.json();
 
       if (data.success) {
         if (driveUrl && data.content_id) {
@@ -149,18 +138,17 @@ export default function Dashboard() {
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchMemos();
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || "音声処理エラー");
       }
-    } catch (err: any) {
-      alert("エラー:" + err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) alert("エラー: " + err.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading)
     return <div style={{ padding: "2rem" }}>読み込み中...</div>;
-  }
 
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
@@ -191,7 +179,7 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {/* Google Drive 連携（メールPWログインのみ表示） */}
+      {/* Google Drive 連携 */}
       {!isGoogleLogin && (
         <div
           style={{
@@ -239,7 +227,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 録音セクション */}
+      {/* 録音・アップロードセクション */}
       <div
         style={{
           marginBottom: "3rem",
@@ -250,60 +238,54 @@ export default function Dashboard() {
       >
         <h2 style={{ marginBottom: "1.5rem" }}>🎙️ 音声入力</h2>
 
-        {/* 録音 */}
-        <div style={{ marginBottom: "1.5rem" }}>
-          {!isRecording ? (
-            <button
-              onClick={startRecording}
-              disabled={isProcessing}
-              style={{
-                padding: "1rem 2rem",
-                background: "#ef4444",
-                color: "white",
-                borderRadius: "0.5rem",
-              }}
-            >
-              🔴 録音開始
-            </button>
-          ) : (
-            <button
-              onClick={stopRecording}
-              style={{
-                padding: "1rem 2rem",
-                background: "#6b7280",
-                color: "white",
-                borderRadius: "0.5rem",
-              }}
-            >
-              ⏹️ 停止
-            </button>
-          )}
-        </div>
-
-        {/* アップロード */}
-        <div style={{ marginBottom: "1.5rem" }}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="audio/*"
-            onChange={handleFileUpload}
-            disabled={isProcessing || isRecording}
+        {!isRecording ? (
+          <button
+            onClick={startRecording}
+            disabled={isProcessing}
             style={{
-              padding: "0.5rem",
-              border: "2px solid #e5e7eb",
+              padding: "1rem 2rem",
+              background: "#ef4444",
+              color: "white",
               borderRadius: "0.5rem",
-              width: "100%",
             }}
-          />
-        </div>
+          >
+            🔴 録音開始
+          </button>
+        ) : (
+          <button
+            onClick={stopRecording}
+            style={{
+              padding: "1rem 2rem",
+              background: "#6b7280",
+              color: "white",
+              borderRadius: "0.5rem",
+            }}
+          >
+            ⏹️ 停止
+          </button>
+        )}
 
-        {/* 処理 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleFileUpload}
+          disabled={isProcessing || isRecording}
+          style={{
+            marginTop: "1rem",
+            padding: "0.5rem",
+            border: "2px solid #e5e7eb",
+            borderRadius: "0.5rem",
+            width: "100%",
+          }}
+        />
+
         {audioBlob && !isRecording && (
           <div>
             <audio
               controls
               src={URL.createObjectURL(audioBlob)}
-              style={{ width: "100%", marginBottom: "1rem" }}
+              style={{ width: "100%", marginTop: "1rem", marginBottom: "1rem" }}
             />
             <button
               onClick={processAudio}

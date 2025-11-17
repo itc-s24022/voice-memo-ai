@@ -12,34 +12,48 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+interface UploadRequestBody {
+  audioUrl: string;
+  transcript: string;
+  summary: string;
+  tags: string[];
+  email: string;
+  password: string;
+}
+
 export async function POST(req: Request) {
   try {
-    // 1️⃣ フロントから受け取る（音声URLやメールなど）
-    const { audioUrl, transcript, summary, tags, email, password } = await req.json();
+    const { audioUrl, transcript, summary, tags, email, password } =
+      (await req.json()) as UploadRequestBody;
 
-    // 2️⃣ Firebaseログイン → UID取得
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    const uid = user.uid;
-    
+    // Firebaseログイン
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const uid = userCredential.user.uid;
 
     console.log("✅ Firebase UID:", uid);
 
-    // 3️⃣ microCMSへ登録
-    const res = await fetch(`https://${process.env.MICROCMS_SERVICE}.microcms.io/api/v1/memos`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-MICROCMS-API-KEY": process.env.MICROCMS_API_KEY!,
-      },
-      body: JSON.stringify({
-        user_id: uid,
-        audio_url: audioUrl,
-        transcript,
-        summary,
-        tags,
-      }),
-    });
+    // microCMSへ登録
+    const res = await fetch(
+      `https://${process.env.MICROCMS_SERVICE}.microcms.io/api/v1/memos`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-MICROCMS-API-KEY": process.env.MICROCMS_API_KEY!,
+        },
+        body: JSON.stringify({
+          user_id: uid,
+          audio_url: audioUrl,
+          transcript,
+          summary,
+          tags,
+        }),
+      }
+    );
 
     if (!res.ok) {
       const err = await res.text();
@@ -57,8 +71,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, uid, microcms: data });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Upload Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "不明なエラー";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

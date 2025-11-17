@@ -1,8 +1,9 @@
-// app/(auth)/signup/page.tsx
 "use client";
 
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { FirebaseError } from "firebase/app";  // ← ここからインポート
+
 import { auth, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,8 +24,9 @@ export default function Signup() {
       await createUserWithEmailAndPassword(auth, email, password);
       alert("✅ 登録成功！ダッシュボードに移動します");
       router.push("/dashboard");
-    } catch (err: any) {
-      switch (err.code) {
+    } catch (err: unknown) {
+      const error = err as FirebaseError;
+      switch (error.code) {
         case "auth/email-already-in-use":
           setError("このメールアドレスは既に登録されています");
           break;
@@ -35,7 +37,7 @@ export default function Signup() {
           setError("パスワードは6文字以上で設定してください");
           break;
         default:
-          setError("登録に失敗しました: " + err.message);
+          setError("登録に失敗しました: " + (error.message ?? "不明なエラー"));
       }
     } finally {
       setLoading(false);
@@ -48,8 +50,9 @@ export default function Signup() {
       await signInWithPopup(auth, googleProvider);
       alert("✅ Googleで登録成功！");
       router.push("/dashboard");
-    } catch (err: any) {
-      setError("❌ Google登録失敗: " + err.message);
+    } catch (err: unknown) {
+      const error = err as FirebaseError;
+      setError("❌ Google登録失敗: " + (error.message ?? "不明なエラー"));
     }
   };
 
