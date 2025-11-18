@@ -425,5 +425,13 @@ MIT License
 ---
 
 ## 📧 お問い合わせ
- 
-質問・バグ報告は [Issues](https://github.com/your-username/voice-memo-ai/issues) へ
+
+質問・バグ報告は [Issues](https://github.com/itc-s24022/voice-memo-ai/issues) へ
+
+---
+
+## 🔗 関連リンク
+
+- **本番サイト**: https://voice-memo-ai-dusky.vercel.app/
+- **GitHub**: https://github.com/itc-s24022/voice-memo-ai
+- **開発者**: [@itc-s24022](https://github.com/itc-s24022)
